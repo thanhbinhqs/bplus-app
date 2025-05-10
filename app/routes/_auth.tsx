@@ -7,6 +7,8 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { apiRequest } from "~/lib/api-request";
 import { MenuItem } from "~/lib/interfaces/menu-item";
 import { useLoaderData } from "@remix-run/react";
+import { useEffect } from "react";
+import React from "react";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const pathname = new URL(request.url).pathname.split("/");
@@ -56,6 +58,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function AuthLayout() {
   const { pageName } = useLoaderData<typeof loader>();
+  const [isOpen, setIsOpen] = React.useState<boolean>(true);
+
+  useEffect(() => {
+    onTriggerClickHandler();
+  }, []);
+
+  const onTriggerClickHandler = () => {
+    const container = document.querySelector("#auth-container");
+    if (isOpen) {
+      container?.classList.add("w-[calc(100vw-192px)]");
+      container?.classList.remove("w-[calc(100vw-48px)]");
+    } else {
+      container?.classList.add("w-[calc(100vw-48px)]");
+      container?.classList.remove("w-[calc(100vw-192px)]");
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <SidebarProvider
       style={{
@@ -66,10 +86,19 @@ export default function AuthLayout() {
     >
       <AppSidebar variant="offcanvas" id="app-sidebar" />
       <SidebarInset>
-        <div className="flex flex-col justify-center items-center">
-          <SiteHeader pageName={pageName} />
-
-          <Outlet />
+        <div className="flex flex-col justify-start items-center h-full">
+          <SiteHeader
+            pageName={pageName}
+            onTriggerClick={onTriggerClickHandler}
+          />
+          <div className="flex-1 w-full border overflow-hidden ">
+            <div
+              className="max-w-full !overflow-y-visible w-[calc(100vw-192px)] max-h-[calc(100vh-64px)] mx-auto"
+              id="auth-container"
+            >
+              <Outlet />
+            </div>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -68,8 +68,8 @@ export default function AppTable({ columns, data }: any) {
 
   return (
     <div className="overflow-x-auto max-w-full">
-      <div className="relative overflow-auto max-h-[calc(100vh-64px)] w-full scrollbar-left">
-        <style>
+      <div className="relative overflow-auto max-h-[calc(100vh-48px)] w-full scrollbar-left">
+        {/* <style>
           {`
             .scrollbar-left {
               direction: rtl;
@@ -79,7 +79,7 @@ export default function AppTable({ columns, data }: any) {
               direction: ltr;
             }
           `}
-        </style>
+        </style> */}
         <table
           id="app-table"
           ref={tableRef}
