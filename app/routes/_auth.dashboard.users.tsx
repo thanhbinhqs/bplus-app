@@ -1,6 +1,10 @@
 import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
-import { Link, Outlet, useLoaderData, useSearchParams } from "@remix-run/react";
-import { ColumnDef } from "@tanstack/react-table";
+import {
+  useLoaderData,
+  useOutletContext,
+  useSearchParams,
+} from "@remix-run/react";
+import { ColumnDef, HeaderContext } from "@tanstack/react-table";
 import AppTable from "~/components/app/table";
 import { Button } from "~/components/ui/button";
 import {
@@ -9,12 +13,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { apiRequest } from "~/lib/api-request";
@@ -22,15 +21,27 @@ import { User } from "~/lib/interfaces/user";
 import { IoIosArrowDropdown } from "react-icons/io";
 import { ReactNode, useMemo, useState } from "react";
 import SetUserProfileDialog from "~/components/app/user/set-profile-dialog";
+import moment from "moment";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  const pageSizeOptions = [50, 100, 200, 500];
   const url = new URL(request.url);
-  const userRes = await apiRequest(request, "/user", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const page = url.searchParams.get("page") || "1";
+  let pageSize = url.searchParams.get("pageSize") || "50";
+  const search = url.searchParams.get("search") || "";
+
+  if (pageSizeOptions.indexOf(Number(pageSize)) === -1) pageSize = "50";
+
+  const userRes = await apiRequest(
+    request,
+    `/user?page=${page}&limit=${pageSize}&search=${search}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
   if (!userRes?.success) {
     if (userRes.statusCode === 401) return redirect("/auth/login");
@@ -42,8 +53,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
     };
   }
 
-  return { ...userRes.data };
+  return {
+    ...userRes.data,
+    pagination: {
+      page: userRes.data?.page || Number(page),
+      pageSize: userRes.data?.limit || Number(pageSize),
+      total: userRes.data?.total || 0,
+      pageSizeOptions: pageSizeOptions,
+    },
+    pageName: "Users",
+  };
 }
+
+// export const handle = {
+//   headerContent: {
+//     // content: <h1>Nội dung tùy chỉnh cho SiteHeader</h1>,
+//     pageName: "Users",
+//   } as HeaderContentProps,
+// };
 
 export default function UserListingPage() {
   const {
@@ -53,11 +80,9 @@ export default function UserListingPage() {
     data = [],
   } = useLoaderData<typeof loader>();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-
   const users = useMemo(() => {
     return data;
-  }, []);
+  }, [data]);
 
   const [currentDialog, setCurrentDialog] = useState<ReactNode>(null);
 
@@ -65,7 +90,9 @@ export default function UserListingPage() {
     {
       id: "id",
       accessorKey: "id",
-      header: "No",
+      header: () => (
+        <div className="w-full flex items-center justify-center">No</div>
+      ),
       size: 60,
       enableResizing: false,
 
@@ -77,16 +104,8 @@ export default function UserListingPage() {
     },
     {
       id: "action",
-      header: ({ table }) => (
-        // <div className="flex items-center justify-center">
-        //   <input
-        //     type="checkbox"
-        //     checked={table.getIsAllRowsSelected()}
-        //     onChange={table.getToggleAllRowsSelectedHandler()}
-        //     className="cursor-pointer"
-        //   />
-        // </div>
-        <div>Action</div>
+      header: () => (
+        <div className="w-full flex items-center justify-center">Action</div>
       ),
       cell: ({ row }) => {
         const username = row.getValue("username");
@@ -177,8 +196,10 @@ export default function UserListingPage() {
     {
       id: "username",
       accessorKey: "username",
-      header: "Username",
-      size: 800,
+      header: () => (
+        <div className="w-full flex items-center justify-center">Username</div>
+      ),
+      size: 200,
       enableResizing: true,
       meta: {
         sticky: "left",
@@ -186,8 +207,10 @@ export default function UserListingPage() {
     },
     {
       accessorKey: "fullname",
-      header: "Fullname",
-      size: 300,
+      header: () => (
+        <div className="w-full flex items-center justify-center">Fullname</div>
+      ),
+      size: 200,
       enableResizing: true,
       meta: {
         sticky: "left",
@@ -195,53 +218,103 @@ export default function UserListingPage() {
     },
     {
       accessorKey: "email",
-      header: "Email",
+      header: () => (
+        <div className="w-full flex items-center justify-center">Email</div>
+      ),
       size: 150,
       enableResizing: true,
     },
     {
       accessorKey: "phone",
-      header: "Phone",
+      header: () => (
+        <div className="w-full flex items-center justify-center">Phone</div>
+      ),
       size: 150,
       enableResizing: true,
     },
 
     {
       accessorKey: "gen",
-      header: "Gen",
-      size: 150,
+      header: () => (
+        <div className="w-full flex items-center justify-center">Gen</div>
+      ),
+      size: 100,
       enableResizing: true,
     },
     {
       accessorKey: "birthday",
-      header: "Birthday",
-      size: 150,
+      header: () => (
+        <div className="w-full flex items-center justify-center">Birthday</div>
+      ),
+      size: 100,
       enableResizing: true,
     },
     {
       accessorKey: "address",
-      header: "Address",
+      header: () => (
+        <div className="w-full flex items-center justify-center">Address</div>
+      ),
       size: 150,
       enableResizing: true,
     },
     {
       id: "active",
       accessorKey: "active",
-      header: "Active",
       size: 100,
       enableResizing: true,
+      header: () => {
+        return (
+          <div className="w-full flex items-center justify-center">Active</div>
+        );
+      },
+      cell: ({ row }) => {
+        const active = row.getValue("active");
+        return (
+          <div className="w-full flex items-center justify-center">
+            {active ? (
+              <span className="text-green-500">Active</span>
+            ) : (
+              <span className="text-red-500">Deactive</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "createdAt",
-      header: "Created At",
-      size: 150,
+      header: () => (
+        <div className="w-full flex items-center justify-center">
+          Created At
+        </div>
+      ),
+      size: 200,
       enableResizing: true,
+      cell: ({ row }) => {
+        const createdAt = row.getValue("createdAt") as string;
+        return (
+          <div className="w-full flex items-center justify-center">
+            {moment(createdAt).format("YYYY-MM-DD HH:mm:ss")}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "updatedAt",
-      header: "Updated At",
-      size: 150,
+      header: () => (
+        <div className="w-full flex items-center justify-center">
+          Updated At
+        </div>
+      ),
+      size: 200,
       enableResizing: true,
+      cell: ({ row }) => {
+        const updatedAt = row.getValue("updatedAt") as string;
+        return (
+          <div className="w-full flex items-center justify-center">
+            {moment(updatedAt).format("YYYY-MM-DD HH:mm:ss")}
+          </div>
+        );
+      },
     },
   ];
 

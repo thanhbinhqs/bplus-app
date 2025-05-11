@@ -7,7 +7,7 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { apiRequest } from "~/lib/api-request";
 import { MenuItem } from "~/lib/interfaces/menu-item";
 import { useLoaderData } from "@remix-run/react";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import React from "react";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -59,10 +59,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function AuthLayout() {
   const { pageName } = useLoaderData<typeof loader>();
   const [isOpen, setIsOpen] = React.useState<boolean>(true);
+  const [sideHeaderContent, setSideHeaderContent] = React.useState<ReactNode>(
+    <></>
+  );
 
   useEffect(() => {
     onTriggerClickHandler();
   }, []);
+
+
 
   const onTriggerClickHandler = () => {
     const container = document.querySelector("#auth-container");
@@ -90,6 +95,7 @@ export default function AuthLayout() {
           <SiteHeader
             pageName={pageName}
             onTriggerClick={onTriggerClickHandler}
+            content={sideHeaderContent}
           />
           <div className="flex-1 w-full border overflow-hidden ">
             <div

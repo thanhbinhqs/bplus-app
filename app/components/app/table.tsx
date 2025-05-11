@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -43,6 +43,22 @@ export default function AppTable({ columns, data }: any) {
 
     return Math.min(Math.max(maxWidth, 50), 400); // Respect min/max sizes
   };
+
+  // useLayoutEffect(() => {
+  //   if (tableRef.current) {
+  //     const columnSizes: { [key: string]: number } = {};
+  //     table.getAllColumns().forEach((column) => {
+  //       const width = calculateColumnWidth(column.id);
+  //       if (width > 0) {
+  //         columnSizes[column.id] = width;
+  //       }
+  //     });
+  //     table.setColumnSizing((prev) => ({
+  //       ...prev,
+  //       ...columnSizes,
+  //     }));
+  //   }
+  // }, [data, columns]);
 
   const table = useReactTable({
     data,

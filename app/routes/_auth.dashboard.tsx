@@ -1,5 +1,5 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
-import { Outlet } from "@remix-run/react";
+import { Outlet, useOutletContext } from "@remix-run/react";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   //get page name from first part of pathname

@@ -1,27 +1,25 @@
-import { Form, redirect, useSubmit } from "@remix-run/react";
+import { redirect, useSubmit } from "@remix-run/react";
 import { useState } from "react";
-import { Button } from "~/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 
 import type { ActionFunctionArgs } from "@remix-run/node";
+import { HeaderContentProps } from "~/lib/interfaces/header-content";
 export async function action({ request }: ActionFunctionArgs) {
   return redirect("/dashboard/users");
   return {};
 }
 
+export const handle = {
+  headerContent: {
+    content: <h1>Nội dung tùy chỉnh cho SiteHeader</h1>,
+    pageName: "Profile",
+  } as HeaderContentProps,
+};
+
+
 export default function UserProfilePage() {
   const [open, setOpen] = useState(true);
   const submit = useSubmit();
+  
 
   const closeHandler = () => {
     submit(null);
