@@ -2,6 +2,8 @@
 import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import {
   useLoaderData,
+  useNavigate,
+  useNavigation,
 } from "@remix-run/react";
 import { ColumnDef } from "@tanstack/react-table";
 import AppTable from "~/components/app/table";
@@ -18,9 +20,10 @@ import {
 import { apiRequest } from "~/lib/api-request";
 import { User } from "~/lib/interfaces/user";
 import { IoIosArrowDropdown } from "react-icons/io";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, Suspense, useMemo, useState } from "react";
 import SetUserProfileDialog from "~/components/app/user/set-profile-dialog";
 import moment from "moment";
+import Loading from "~/components/app/loading";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const pageSizeOptions = [50, 100, 200, 500];
@@ -73,6 +76,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function UserListingPage() {
   const { data = [] } = useLoaderData<typeof loader>();
+  const navigate = useNavigation();
 
   const users = useMemo(() => {
     return data;
@@ -335,6 +339,9 @@ export default function UserListingPage() {
 
   return (
     <>
+    {navigate.state === "loading" && (
+      <Loading /> 
+    )}
       {users.length > 0 ? (
         <>
           {currentDialog && currentDialog}
