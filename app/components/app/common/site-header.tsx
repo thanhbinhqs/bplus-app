@@ -37,13 +37,6 @@ export default function SiteHeader({
   const createContent = () => {
     if (!paginationData) return null;
     const { page, total, pageSize, pageSizeOptions } = paginationData;
-    const totalPage = Math.ceil(total / pageSize);
-
-    const handlePageChange = (newPage: number) => {
-      if (newPage >= 1 && newPage <= totalPage) {
-        navigate(`?page=${newPage}&pageSize=${pageSize}`);
-      }
-    };
 
     const handleSizeChange = (newSize: number) => {
       navigate(`?page=${1}&pageSize=${newSize}`);
@@ -54,7 +47,6 @@ export default function SiteHeader({
           page={page}
           total={total}
           pageSize={pageSize}
-          onPageChange={handlePageChange}
         />
         <Select onValueChange={(size: any) => handleSizeChange(size)}>
           <SelectTrigger className="w-[80px]">

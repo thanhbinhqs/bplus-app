@@ -1,10 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import {
   useLoaderData,
-  useOutletContext,
-  useSearchParams,
 } from "@remix-run/react";
-import { ColumnDef, HeaderContext } from "@tanstack/react-table";
+import { ColumnDef } from "@tanstack/react-table";
 import AppTable from "~/components/app/table";
 import { Button } from "~/components/ui/button";
 import {
@@ -73,12 +72,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // };
 
 export default function UserListingPage() {
-  const {
-    total = 0,
-    limit = 50,
-    page = 1,
-    data = [],
-  } = useLoaderData<typeof loader>();
+  const { data = [] } = useLoaderData<typeof loader>();
 
   const users = useMemo(() => {
     return data;
