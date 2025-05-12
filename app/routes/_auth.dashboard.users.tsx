@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
-import {
-  useLoaderData,
-  useNavigate,
-  useNavigation,
-} from "@remix-run/react";
+import { useLoaderData, useNavigate, useNavigation } from "@remix-run/react";
 import { ColumnDef } from "@tanstack/react-table";
 import AppTable from "~/components/app/table";
 import { Button } from "~/components/ui/button";
@@ -339,9 +335,7 @@ export default function UserListingPage() {
 
   return (
     <>
-    {navigate.state === "loading" && (
-      <Loading /> 
-    )}
+      {navigate.state === "loading" && <Loading />}
       {users.length > 0 ? (
         <>
           {currentDialog && currentDialog}
