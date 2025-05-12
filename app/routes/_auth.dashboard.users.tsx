@@ -335,7 +335,7 @@ export default function UserListingPage() {
 
   return (
     <>
-      {navigate.state === "loading" && <Loading />}
+      {/* {navigate.state === "loading" && <Loading />} */}
       {users.length > 0 ? (
         <>
           {currentDialog && currentDialog}
