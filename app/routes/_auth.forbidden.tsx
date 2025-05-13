@@ -30,5 +30,6 @@ export default function ForbiddenPage() {
         Back to Home
       </Link>
     </div>
+    
   );
 }

@@ -1,6 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useNavigate, useNavigation } from "@remix-run/react";
+import {
+  data,
+  Form,
+  Link,
+  Outlet,
+  useLoaderData,
+  useNavigate,
+  useNavigation,
+  useSubmit,
+} from "@remix-run/react";
 import { ColumnDef } from "@tanstack/react-table";
 import AppTable from "~/components/app/table";
 import { Button } from "~/components/ui/button";
@@ -22,17 +31,38 @@ import moment from "moment";
 import Loading from "~/components/app/loading";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const pageSizeOptions = [50, 100, 200, 500];
+  const limitOptions = [50, 100, 200, 500];
   const url = new URL(request.url);
-  const page = url.searchParams.get("page") || "1";
-  let pageSize = url.searchParams.get("pageSize") || "50";
-  const search = url.searchParams.get("search") || "";
 
-  if (pageSizeOptions.indexOf(Number(pageSize)) === -1) pageSize = "50";
+  const cookies = request.headers.get("cookie");
+
+  const page =
+    url.searchParams.get("page") ||
+    cookies
+      ?.split(";")
+      .find((cookie) => cookie.trim().startsWith("page="))
+      ?.split("=")[1] ||
+    "1";
+  let limit =
+    url.searchParams.get("limit") ||
+    cookies
+      ?.split(";")
+      .find((cookie) => cookie.trim().startsWith("limit="))
+      ?.split("=")[1] ||
+    "50";
+  const search =
+    url.searchParams.get("search") ||
+    cookies
+      ?.split(";")
+      .find((cookie) => cookie.trim().startsWith("search="))
+      ?.split("=")[1] ||
+    "";
+
+  if (limitOptions.indexOf(Number(limit)) === -1) limit = "50";
 
   const userRes = await apiRequest(
     request,
-    `/user?page=${page}&limit=${pageSize}&search=${search}`,
+    `/user?page=${page}&limit=${limit}&search=${search}`,
     {
       method: "GET",
       headers: {
@@ -51,28 +81,56 @@ export async function loader({ request }: LoaderFunctionArgs) {
     };
   }
 
-  return {
-    ...userRes.data,
-    pagination: {
-      page: userRes.data?.page || Number(page),
-      pageSize: userRes.data?.limit || Number(pageSize),
-      total: userRes.data?.total || 0,
-      pageSizeOptions: pageSizeOptions,
+  return data(
+    {
+      ...userRes.data,
+      pagination: {
+        page: userRes.data?.page || Number(page),
+        limit: userRes.data?.limit || Number(limit),
+        total: userRes.data?.total || 0,
+        limitOptions: limitOptions,
+        search: search,
+      },
+      pageName: "Users",
     },
-    pageName: "Users",
-  };
+    {
+      headers: {
+        "Set-Cookie": [
+          `page=${page}; path=/`,
+          `limit=${limit}; path=/`,
+          `search=${search}; path=/`,
+        ].join(","),
+      },
+    }
+  );
 }
 
-// export const handle = {
-//   headerContent: {
-//     // content: <h1>Nội dung tùy chỉnh cho SiteHeader</h1>,
-//     pageName: "Users",
-//   } as HeaderContentProps,
-// };
+import type { ActionFunctionArgs } from "@remix-run/node";
+export async function action({ request, context, params }: ActionFunctionArgs) {
+  const encType = request.headers.get("content-type");
+  if (encType != "application/json") return {};
+
+  const body = await request.json();
+
+  const { action, id, pagination } = body;
+
+  return redirect(`/dashboard/users/${action}?id=${id}`, {
+    headers: {
+      "Set-Cookie": [
+        `page=${pagination.page}; path=/`,
+        `limit=${pagination.limit}; path=/`,
+        `search=${pagination.search}; path=/`,
+      ].join(","),
+    },
+  });
+
+  return {};
+}
 
 export default function UserListingPage() {
-  const { data = [] } = useLoaderData<typeof loader>();
+  const { data = [], pagination } = useLoaderData<typeof loader>();
   const navigate = useNavigation();
+  const submit = useSubmit();
 
   const users = useMemo(() => {
     return data;
@@ -114,47 +172,49 @@ export default function UserListingPage() {
                   <IoIosArrowDropdown />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel className="text-center">
-                  <span className="">{"Action > " + username}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-gray-200"
-                    onClick={() => actionHandler("profile", id)}
-                  >
-                    Profile
-                  </DropdownMenuItem>
+              <Form>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel className="text-center">
+                    <span className="">{"Action > " + username}</span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    {/* <Link to="profile"> */}
+                    <DropdownMenuItem
+                      className="cursor-pointer hover:!bg-gray-200"
+                      onClick={() => actionHandler("profile", id)}
+                    >
+                      Profile
+                    </DropdownMenuItem>
+                    {/* </Link> */}
+                    <DropdownMenuItem
+                      className="cursor-pointer hover:!bg-gray-200"
+                      onClick={() => actionHandler("active", id)}
+                    >
+                      {!active ? <span>Active</span> : <span>Deactive</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer hover:!bg-gray-200"
+                      onClick={() => actionHandler("role", id)}
+                    >
+                      Role
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer hover:!bg-gray-200"
+                      onClick={() => actionHandler("permission", id)}
+                    >
+                      Permission
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer hover:!bg-gray-200"
+                      onClick={() => actionHandler("password", id)}
+                    >
+                      Password
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
 
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-gray-200"
-                    onClick={() => actionHandler("active", id)}
-                  >
-                    {!active ? <span>Active</span> : <span>Deactive</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-gray-200"
-                    onClick={() => actionHandler("role", id)}
-                  >
-                    Role
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-gray-200"
-                    onClick={() => actionHandler("permission", id)}
-                  >
-                    Permission
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-gray-200"
-                    onClick={() => actionHandler("password", id)}
-                  >
-                    Password
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-
-                <DropdownMenuSeparator />
-                {/* <DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  {/* <DropdownMenuGroup>
                 <DropdownMenuItem>Team</DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Invite users</DropdownMenuSubTrigger>
@@ -171,13 +231,14 @@ export default function UserListingPage() {
               </DropdownMenuGroup>
               
               <DropdownMenuSeparator /> */}
-                <DropdownMenuItem
-                  className="cursor-pointer hover:!bg-red-200"
-                  onClick={() => actionHandler("delete", id)}
-                >
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:!bg-red-200"
+                    onClick={() => actionHandler("delete", id)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </Form>
             </DropdownMenu>
           </div>
         );
@@ -317,20 +378,11 @@ export default function UserListingPage() {
   };
 
   const actionHandler = (action: any, id: string) => {
-    userAction[action](id);
-  };
-
-  const userAction = {
-    profile: (id: string) => {
-      setCurrentDialog(
-        <SetUserProfileDialog id={id} onClose={actionDialogCloseHandler} />
-      );
-    },
-    active: (id: string) => {},
-    role: (id: string) => {},
-    permission: (id: string) => {},
-    password: (id: string) => {},
-    delete: (id: string) => {},
+    // userAction[action](id);
+    submit(
+      { id: id, action: action, pagination },
+      { method: "post", encType: "application/json" }
+    );
   };
 
   return (
@@ -346,6 +398,7 @@ export default function UserListingPage() {
           <h2 className="text-lg font-bold">No Data</h2>
         </div>
       )}
+      <Outlet />
     </>
   );
 }

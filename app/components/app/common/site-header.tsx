@@ -36,26 +36,26 @@ export default function SiteHeader({
 
   const createContent = () => {
     if (!paginationData) return null;
-    const { page, total, pageSize, pageSizeOptions } = paginationData;
+    const { page, total, limit, limitOptions } = paginationData;
 
     const handleSizeChange = (newSize: number) => {
-      navigate(`?page=${1}&pageSize=${newSize}`);
+      navigate(`?page=${1}&limit=${newSize}`);
     };
     return (
       <div className="flex items-center gap-2">
         <PaginationComponent
           page={page}
           total={total}
-          pageSize={pageSize}
+          limit={limit}
         />
         <Select onValueChange={(size: any) => handleSizeChange(size)}>
           <SelectTrigger className="w-[80px]">
-            <SelectValue placeholder={pageSize} />
+            <SelectValue placeholder={limit} />
           </SelectTrigger>
           <SelectContent className="w-[80px]">
-            {pageSizeOptions.map((pageSize: any) => (
-              <SelectItem key={pageSize} value={pageSize}>
-                {pageSize}
+            {limitOptions.map((limit: any) => (
+              <SelectItem key={limit} value={limit}>
+                {limit}
               </SelectItem>
             ))}
           </SelectContent>

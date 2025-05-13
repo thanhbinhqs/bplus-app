@@ -12,7 +12,7 @@ import {
 interface PaginationProps {
   total: number;
   page: number;
-  pageSize: number;
+  limit: number;
   onPageChange?: (page: number) => void;
   className?: string;
 }
@@ -20,10 +20,10 @@ interface PaginationProps {
 export function PaginationComponent({
   total,
   page,
-  pageSize,
+  limit,
   className,
 }: PaginationProps) {
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = Math.ceil(total / limit);
   const [visiblePageCount, setVisiblePageCount] = useState(7); // Trang hiện tại + 2 trang trước + 2 trang sau
 
   useEffect(() => {
@@ -55,9 +55,9 @@ export function PaginationComponent({
         items.push(
           <PaginationItem key={i}>
             <PaginationLink
-              href={`?page=${i}&pageSize=${pageSize}`}
-              className={i === page ? "bg-primary text-primary-foreground" : ""}
-              isActive={i === page}
+              href={`?page=${i}&limit=${limit}`}
+              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              isActive={i == page}
             >
               {i}
             </PaginationLink>
@@ -72,9 +72,9 @@ export function PaginationComponent({
         items.push(
           <PaginationItem key={i}>
             <PaginationLink
-              href={`?page=${i}&pageSize=${pageSize}`}
-              className={i === page ? "bg-primary text-primary-foreground" : ""}
-              isActive={i === page}
+              href={`?page=${i}&limit=${limit}`}
+              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              isActive={i == page}
             >
               {i}
             </PaginationLink>
@@ -92,11 +92,11 @@ export function PaginationComponent({
       items.push(
         <PaginationItem key={totalPages}>
           <PaginationLink
-            href={`?page=${totalPages}&pageSize=${pageSize}`}
+            href={`?page=${totalPages}&limit=${limit}`}
             className={
-              totalPages === page ? "bg-primary text-primary-foreground" : ""
+              totalPages == page ? "bg-primary text-primary-foreground" : ""
             }
-            isActive={totalPages === page}
+            isActive={totalPages == page}
           >
             {totalPages}
           </PaginationLink>
@@ -111,9 +111,9 @@ export function PaginationComponent({
       items.push(
         <PaginationItem key={1}>
           <PaginationLink
-            href={`?page=${1}&pageSize=${pageSize}`}
-            className={1 === page ? "bg-primary text-primary-foreground" : ""}
-            isActive={1 === page}
+            href={`?page=${1}&limit=${limit}`}
+            className={1 == page ? "bg-primary text-primary-foreground" : ""}
+            isActive={1 == page}
           >
             {1}
           </PaginationLink>
@@ -132,9 +132,9 @@ export function PaginationComponent({
         items.push(
           <PaginationItem key={i}>
             <PaginationLink
-              href={`?page=${i}&pageSize=${pageSize}`}
-              className={i === page ? "bg-primary text-primary-foreground" : ""}
-              isActive={i === page}
+              href={`?page=${i}&limit=${limit}`}
+              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              isActive={i == page}
             >
               {i}
             </PaginationLink>
@@ -153,11 +153,11 @@ export function PaginationComponent({
       items.push(
         <PaginationItem key={totalPages}>
           <PaginationLink
-            href={`?page=${totalPages}&pageSize=${pageSize}`}
+            href={`?page=${totalPages}&limit=${limit}`}
             className={
-              totalPages === page ? "bg-primary text-primary-foreground" : ""
+              totalPages == page ? "bg-primary text-primary-foreground" : ""
             }
-            isActive={totalPages === page}
+            isActive={totalPages == page}
           >
             {totalPages}
           </PaginationLink>
@@ -172,9 +172,9 @@ export function PaginationComponent({
       items.push(
         <PaginationItem key={1}>
           <PaginationLink
-            href={`?page=${1}&pageSize=${pageSize}`}
-            className={1 === page ? "bg-primary text-primary-foreground" : ""}
-            isActive={1 === page}
+            href={`?page=${1}&limit=${limit}`}
+            className={1 == page ? "bg-primary text-primary-foreground" : ""}
+            isActive={1 == page}
           >
             {1}
           </PaginationLink>
@@ -192,9 +192,9 @@ export function PaginationComponent({
         items.push(
           <PaginationItem key={i}>
             <PaginationLink
-              href={`?page=${i}&pageSize=${pageSize}`}
-              className={i === page ? "bg-primary text-primary-foreground" : ""}
-              isActive={i === page}
+              href={`?page=${i}&limit=${limit}`}
+              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              isActive={i == page}
             >
               {i}
             </PaginationLink>
@@ -212,7 +212,7 @@ export function PaginationComponent({
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious
-            href={`?page=${Number(page) - 1}&pageSize=${pageSize}`}
+            href={`?page=${Number(page) - 1}&limit=${limit}`}
             className={page <= 1 ? "pointer-events-none opacity-50" : ""}
           />
         </PaginationItem>
@@ -221,7 +221,7 @@ export function PaginationComponent({
 
         <PaginationItem>
           <PaginationNext
-            href={`?page=${Number(page) + 1}&pageSize=${pageSize}`}
+            href={`?page=${Number(page) + 1}&limit=${limit}`}
             className={
               page >= totalPages ? "pointer-events-none opacity-50" : ""
             }
