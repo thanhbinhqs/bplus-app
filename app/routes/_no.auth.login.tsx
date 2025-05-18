@@ -8,6 +8,7 @@ import { useToast } from "~/hooks/use-toast";
 import { useEffect } from "react";
 
 import type { LoaderFunctionArgs } from "@remix-run/node";
+import { API_URL } from "~/lib/api-request";
 export async function loader({ request }: LoaderFunctionArgs) {
   //clear cookies
 
@@ -16,9 +17,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     {
       headers: {
         "Set-Cookie": [
-          `token=; HttpOnly; Path=/; Max-Age=0`,
-          `username=; HttpOnly; Path=/; Max-Age=0`,
-          `userId=; HttpOnly; Path=/; Max-Age=0`,
+          `bp_token=; HttpOnly; Path=/; Max-Age=0;`,
+          `bp_menu=; HttpOnly; Path=/; Max-Age=0`,
+          `bp_pagination=; HttpOnly; Path=/; Max-Age=0`,
+          `bp_user=; HttpOnly; Path=/; Max-Age=0;`,
+
         ].join(", "),
       },
     }
@@ -35,7 +38,6 @@ export async function action({ request }: ActionFunctionArgs) {
     return data({ error: "User and password are required" }, { status: 400 });
   }
 
-  const API_URL = process.env.API_URL;
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: {
@@ -49,9 +51,8 @@ export async function action({ request }: ActionFunctionArgs) {
     return redirect(returnUrl, {
       headers: {
         "Set-Cookie": [
-          `token=${data.token}; HttpOnly; Path=/;`,
-          `username=${JSON.stringify(data.username)}; HttpOnly; Path=/;`,
-          `userId=${JSON.stringify(data.id)}; HttpOnly; Path=/;`,
+          `bp_token=${data.token}; HttpOnly; Path=/;`,
+          
         ].join(", "),
       },
       status: 302,
@@ -79,7 +80,7 @@ export default function LoginPage() {
 
   const defaultValues = {
     username: "admin",
-    password: "Abc@13579",
+    password: "1234567890",
   };
 
   return (

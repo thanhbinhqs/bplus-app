@@ -17,23 +17,28 @@ import { Input } from "~/components/ui/input";
 
 export async function action({ request }: ActionFunctionArgs) {
   const cookies = request.headers.get("cookie");
-  const page =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("page="))
-      ?.split("=")[1] || "1";
+  const paginationStr = JSON.parse(cookies?.split(";").find((cookie) => cookie.trim().startsWith("bp_pagination="))?.split("=")[1] || "{}");
+  const pagination = paginationStr ? JSON.parse(paginationStr) : {};
+  const page = pagination.page || 1;
+  const limit = pagination.limit || 50;
+  const search = pagination.search || "";
+  // const page =
+  //   cookies
+  //     ?.split(";")
+  //     .find((cookie) => cookie.trim().startsWith("page="))
+  //     ?.split("=")[1] || "1";
 
-  const limit =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("limit="))
-      ?.split("=")[1] || "50";
+  // const limit =
+  //   cookies
+  //     ?.split(";")
+  //     .find((cookie) => cookie.trim().startsWith("limit="))
+  //     ?.split("=")[1] || "50";
 
-  const search =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("search="))
-      ?.split("=")[1] || "";
+  // const search =
+  //   cookies
+  //     ?.split(";")
+  //     .find((cookie) => cookie.trim().startsWith("search="))
+  //     ?.split("=")[1] || "";
 
   return redirect(
     `/dashboard/users?page=${page}&limit=${limit}&search=${search}`

@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { redirect, type LoaderFunctionArgs } from "@remix-run/node";
+import {
+  redirect,
+  type LoaderFunctionArgs,
+  ActionFunctionArgs,
+} from "@remix-run/node";
 import {
   data,
   Form,
-  Link,
   Outlet,
+  useActionData,
   useLoaderData,
-  useNavigate,
-  useNavigation,
+  useMatches,
   useSubmit,
 } from "@remix-run/react";
 import { ColumnDef } from "@tanstack/react-table";
@@ -25,38 +28,25 @@ import {
 import { apiRequest } from "~/lib/api-request";
 import { User } from "~/lib/interfaces/user";
 import { IoIosArrowDropdown } from "react-icons/io";
-import { ReactNode, Suspense, useMemo, useState } from "react";
-import SetUserProfileDialog from "~/components/app/user/set-profile-dialog";
+import { useMemo } from "react";
 import moment from "moment";
-import Loading from "~/components/app/loading";
+import { MenuItem } from "~/lib/interfaces/menu-item";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const limitOptions = [50, 100, 200, 500];
   const url = new URL(request.url);
 
   const cookies = request.headers.get("cookie");
+  const ck_pagination = JSON.parse(
+    cookies
+      ?.split(";")
+      .find((cookie) => cookie.trim().startsWith("bp_pagination="))
+      ?.split("=")[1] || "{}"
+  );
 
-  const page =
-    url.searchParams.get("page") ||
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("page="))
-      ?.split("=")[1] ||
-    "1";
-  let limit =
-    url.searchParams.get("limit") ||
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("limit="))
-      ?.split("=")[1] ||
-    "50";
-  const search =
-    url.searchParams.get("search") ||
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("search="))
-      ?.split("=")[1] ||
-    "";
+  const page = url.searchParams.get("page") || ck_pagination.page || "1";
+  let limit = url.searchParams.get("limit") || ck_pagination.limit || "50";
+  const search = url.searchParams.get("search") || ""; //|| ck_pagination.search;
 
   if (limitOptions.indexOf(Number(limit)) === -1) limit = "50";
 
@@ -81,62 +71,81 @@ export async function loader({ request }: LoaderFunctionArgs) {
     };
   }
 
+  const pagination = {
+    page: userRes.data?.page || Number(page),
+    limit: userRes.data?.limit || Number(limit),
+    total: userRes.data?.total || 0,
+    limitOptions: limitOptions,
+    search: search,
+  };
+
   return data(
     {
       ...userRes.data,
-      pagination: {
-        page: userRes.data?.page || Number(page),
-        limit: userRes.data?.limit || Number(limit),
-        total: userRes.data?.total || 0,
-        limitOptions: limitOptions,
-        search: search,
-      },
+      pagination: pagination,
       pageName: "Users",
+      siteHeader: {
+        title: "Users",
+      },
     },
     {
       headers: {
         "Set-Cookie": [
-          `page=${page}; path=/`,
-          `limit=${limit}; path=/`,
-          `search=${search}; path=/`,
+          `bp_pagination=${JSON.stringify(pagination)}; path=/`,
         ].join(","),
       },
     }
   );
 }
 
-import type { ActionFunctionArgs } from "@remix-run/node";
-export async function action({ request, context, params }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   const encType = request.headers.get("content-type");
   if (encType != "application/json") return {};
 
   const body = await request.json();
 
-  const { action, id, pagination } = body;
+  const { action, id, pagination, search } = body;
+  if (action == "search") {
+    const searchValue = Object.values(search)[0] || "";
 
-  return redirect(`/dashboard/users/${action}?id=${id}`, {
-    headers: {
-      "Set-Cookie": [
-        `page=${pagination.page}; path=/`,
-        `limit=${pagination.limit}; path=/`,
-        `search=${pagination.search}; path=/`,
-      ].join(","),
-    },
-  });
+    return redirect(
+      `/dashboard/users?page=1&limit=${pagination?.limit}&search=${searchValue}`,
+      {
+        headers: {
+          "Set-Cookie": [
+            `bp_pagination=${JSON.stringify({
+              ...pagination,
+              search: searchValue,
+              page: 1,
+            })}; path=/`,
+          ].join(","),
+        },
+      }
+    );
+  } else
+    return redirect(`/dashboard/users/${action}?id=${id}`, {
+      headers: {
+        "Set-Cookie": [
+          `bp_pagination=${JSON.stringify(pagination)}; path=/`,
+        ].join(","),
+      },
+    });
 
   return {};
 }
 
 export default function UserListingPage() {
   const { data = [], pagination } = useLoaderData<typeof loader>();
-  const navigate = useNavigation();
+  const matches = useMatches();
+
+  const menu = (matches.find((match: any) => match.data?.menu)?.data as any)
+    ?.menu;
+
   const submit = useSubmit();
 
   const users = useMemo(() => {
     return data;
   }, [data]);
-
-  const [currentDialog, setCurrentDialog] = useState<ReactNode>(null);
 
   const userCollums: ColumnDef<User>[] = [
     {
@@ -162,7 +171,13 @@ export default function UserListingPage() {
       cell: ({ row }) => {
         const username = row.getValue("username");
         const active = row.getValue("active");
+        const deleted: boolean = row.original.deleted;
         const id = row.getValue("id") as string;
+        const actionMenu: MenuItem[] =
+          menu?.filter(
+            (item: MenuItem) =>
+              item.subject == "USER" && item.type == "ACTION_MENU"
+          ) || [];
 
         return (
           <div className="flex items-center justify-center cursor-pointer w-full h-full !m-0">
@@ -179,64 +194,49 @@ export default function UserListingPage() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    {/* <Link to="profile"> */}
-                    <DropdownMenuItem
-                      className="cursor-pointer hover:!bg-gray-200"
-                      onClick={() => actionHandler("profile", id)}
-                    >
-                      Profile
-                    </DropdownMenuItem>
-                    {/* </Link> */}
-                    <DropdownMenuItem
-                      className="cursor-pointer hover:!bg-gray-200"
-                      onClick={() => actionHandler("active", id)}
-                    >
-                      {!active ? <span>Active</span> : <span>Deactive</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer hover:!bg-gray-200"
-                      onClick={() => actionHandler("role", id)}
-                    >
-                      Role
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer hover:!bg-gray-200"
-                      onClick={() => actionHandler("permission", id)}
-                    >
-                      Permission
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer hover:!bg-gray-200"
-                      onClick={() => actionHandler("password", id)}
-                    >
-                      Password
-                    </DropdownMenuItem>
+                    {actionMenu
+                      .filter(
+                        (item: MenuItem) =>
+                          item.slug != "delete" && item.slug != "rollback"
+                      )
+                      .map((item: MenuItem, index: number) => (
+                        <DropdownMenuItem
+                          key={`${item.slug}_${index}`}
+                          className="cursor-pointer hover:!bg-gray-200"
+                          onClick={() => actionHandler(item.slug, id)}
+                        >
+                          {item.title}
+                        </DropdownMenuItem>
+                      ))}
                   </DropdownMenuGroup>
-
                   <DropdownMenuSeparator />
-                  {/* <DropdownMenuGroup>
-                <DropdownMenuItem>Team</DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Invite users</DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem>Email</DropdownMenuItem>
-                      <DropdownMenuItem>Message</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>More...</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-  
-              </DropdownMenuGroup>
-              
-              <DropdownMenuSeparator /> */}
-                  <DropdownMenuItem
-                    className="cursor-pointer hover:!bg-red-200"
-                    onClick={() => actionHandler("delete", id)}
-                  >
-                    Delete
-                  </DropdownMenuItem>
+                  {actionMenu
+                    .filter(
+                      (item: MenuItem) =>
+                        item.slug == "delete" || item.slug == "rollback"
+                    )
+                    .map((item: MenuItem, index: number) => {
+                      if (!deleted && item.slug == "delete")
+                        return (
+                          <DropdownMenuItem
+                            key={`${item.slug}`}
+                            className="cursor-pointer hover:!bg-red-200"
+                            onClick={() => actionHandler("delete", id)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        );
+                      else if (deleted && item.slug == "rollback")
+                        return (
+                          <DropdownMenuItem
+                            key={`${item.slug}`}
+                            className="cursor-pointer hover:!bg-red-200"
+                            onClick={() => actionHandler("rollback", id)}
+                          >
+                            Rollback
+                          </DropdownMenuItem>
+                        );
+                    })}
                 </DropdownMenuContent>
               </Form>
             </DropdownMenu>
@@ -258,6 +258,7 @@ export default function UserListingPage() {
       enableResizing: true,
       meta: {
         sticky: "left",
+        search: true,
       },
     },
     {
@@ -373,10 +374,6 @@ export default function UserListingPage() {
     },
   ];
 
-  const actionDialogCloseHandler = () => {
-    setCurrentDialog(null);
-  };
-
   const actionHandler = (action: any, id: string) => {
     // userAction[action](id);
     submit(
@@ -385,19 +382,20 @@ export default function UserListingPage() {
     );
   };
 
+  const onSearch = (columnId: string, value: string) => {
+    submit(
+      {
+        action: "search",
+        search: value,
+        pagination,
+      },
+      { method: "post", encType: "application/json" }
+    );
+  };
+
   return (
     <>
-      {/* {navigate.state === "loading" && <Loading />} */}
-      {users.length > 0 ? (
-        <>
-          {currentDialog && currentDialog}
-          <AppTable columns={userCollums} data={users} />
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center h-full w-full">
-          <h2 className="text-lg font-bold">No Data</h2>
-        </div>
-      )}
+      <AppTable columns={userCollums} data={users} onSearch={onSearch} />
       <Outlet />
     </>
   );

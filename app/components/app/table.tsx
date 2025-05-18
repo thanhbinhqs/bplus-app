@@ -12,8 +12,20 @@ import {
   RowSelectionState,
 } from "@tanstack/react-table";
 import { cn } from "~/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@radix-ui/react-dropdown-menu";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Label } from "../ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
-export default function AppTable({ columns, data }: any) {
+export default function AppTable({ columns, data, onSearch }: any) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const tableRef = useRef<HTMLTableElement>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -44,22 +56,6 @@ export default function AppTable({ columns, data }: any) {
     return Math.min(Math.max(maxWidth, 50), 400); // Respect min/max sizes
   };
 
-  // useLayoutEffect(() => {
-  //   if (tableRef.current) {
-  //     const columnSizes: { [key: string]: number } = {};
-  //     table.getAllColumns().forEach((column) => {
-  //       const width = calculateColumnWidth(column.id);
-  //       if (width > 0) {
-  //         columnSizes[column.id] = width;
-  //       }
-  //     });
-  //     table.setColumnSizing((prev) => ({
-  //       ...prev,
-  //       ...columnSizes,
-  //     }));
-  //   }
-  // }, [data, columns]);
-
   const table = useReactTable({
     data,
     columns,
@@ -82,20 +78,54 @@ export default function AppTable({ columns, data }: any) {
     }));
   };
 
+  const [searchValue, setSearchValue] = useState<{ [key: string]: string }>({});
+  const [openSearchDropdown, setSearchOpenDropdown] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const handleSearchChange = (columnId: string, value: string) => {
+    setSearchValue((prev) => ({
+      ...prev,
+      [columnId]: value,
+    }));
+  };
+
+  const handleSearchSubmit = (columnId: string) => {
+    if (!onSearch) return;
+    setSearchOpenDropdown((prev) => ({
+      ...prev,
+      [columnId]: false,
+    }));
+    onSearch(columnId, searchValue);
+  };
+
+  const toggleDropdown = (columnId: string, open: boolean) => {
+    setSearchOpenDropdown((prev) => ({
+      ...prev,
+      [columnId]: open,
+    }));
+    const input = document.getElementById(
+      `search-input-${columnId}`
+    ) as HTMLInputElement;
+    input?.focus();
+    input?.setSelectionRange(input?.value.length, input?.value.length);
+  };
+
+  const clearSearch = (columnId: string) => {
+    setSearchOpenDropdown((prev) => ({
+      ...prev,
+      [columnId]: false,
+    }));
+
+    setSearchValue((prev) => ({
+      ...prev,
+      [columnId]: "",
+    }));
+    onSearch(columnId, '');
+  };
+
   return (
     <div className="overflow-x-auto max-w-full">
       <div className="relative overflow-auto max-h-[calc(100vh-48px)] w-full scrollbar-left">
-        {/* <style>
-          {`
-            .scrollbar-left {
-              direction: rtl;
-              overflow-y: auto;
-            }
-            .scrollbar-left table {
-              direction: ltr;
-            }
-          `}
-        </style> */}
         <table
           id="app-table"
           ref={tableRef}
@@ -106,6 +136,8 @@ export default function AppTable({ columns, data }: any) {
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const align = header.column.columnDef.meta?.align || "left";
+                  const search = header.column.columnDef.meta?.search || false;
+
                   return (
                     <th
                       key={header.id}
@@ -117,26 +149,97 @@ export default function AppTable({ columns, data }: any) {
                         maxWidth: header.column.columnDef.maxSize || 400,
                       }}
                     >
-                      <div
-                        className="flex items-center cursor-pointer select-none"
-                        style={{
-                          justifyContent:
-                            align === "center"
-                              ? "center"
-                              : align === "right"
-                              ? "flex-end"
-                              : "flex-start",
-                        }}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
+                      <div className="flex gap-1 justify-center items-center w-full">
+                        <div
+                          className="flex items-center cursor-pointer select-none gap-1"
+                          style={{
+                            justifyContent:
+                              align === "center"
+                                ? "center"
+                                : align === "right"
+                                ? "flex-end"
+                                : "flex-start",
+                          }}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+
+                          {{
+                            asc: " 🔼",
+                            desc: " 🔽",
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+
+                        {search && (
+                          <>
+                            <div className="flex-1"></div>
+                            <Popover
+                              open={openSearchDropdown[header.id]}
+                              onOpenChange={(open) =>
+                                toggleDropdown(header.id, open)
+                              }
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  className={cn(
+                                    "hover:bg-blue-500",
+                                    searchValue[header.id]
+                                      ? "bg-blue-200 rounded-full"
+                                      : ""
+                                  )}
+                                >
+                                  🔍
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <div className="grid gap-4">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium leading-none text-center">
+                                      Search by {header.id}
+                                    </h4>
+                                  </div>
+                                  <div className="flex flex-col justify-center items-center gap-2">
+                                    <Input
+                                      defaultValue={searchValue[header.id]}
+                                      onChange={(e) =>
+                                        handleSearchChange(
+                                          header.id,
+                                          e.target.value
+                                        )
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          handleSearchSubmit(header.id);
+                                        }
+                                      }}
+                                    />
+                                    <div className="flex justify-center items-center w-full gap-2">
+                                      <Button
+                                        onClick={() =>
+                                          handleSearchSubmit(header.id)
+                                        }
+                                        className="w-5/6 bg-blue-400 hover:bg-blue-500"
+                                      >
+                                        Search
+                                      </Button>
+
+                                      <Button
+                                        onClick={() => clearSearch(header.id)}
+                                        className="w-1/6 bg-red-400 hover:bg-red-500"
+                                      >
+                                        Clear
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </>
                         )}
-                        {{
-                          asc: " 🔼",
-                          desc: " 🔽",
-                        }[header.column.getIsSorted() as string] ?? null}
                       </div>
                       {header.column.getCanResize() && (
                         <div
@@ -161,6 +264,13 @@ export default function AppTable({ columns, data }: any) {
             ))}
           </thead>
           <tbody>
+            {table.getRowModel().rows.length === 0 && (
+              <tr>
+                <td colSpan={columns.length} className="text-center h-full">
+                  No results.
+                </td>
+              </tr>
+            )}
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="border-b hover:bg-blue-100">
                 {row.getVisibleCells().map((cell) => {

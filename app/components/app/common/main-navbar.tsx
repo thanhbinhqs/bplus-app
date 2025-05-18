@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChevronRight } from "lucide-react";
 import {
   SidebarGroup,
@@ -9,7 +10,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "../../ui/sidebar";
-import { Link, useRouteLoaderData } from "@remix-run/react";
+import { Link, useMatches, useRouteLoaderData } from "@remix-run/react";
 import { MenuItem } from "~/lib/interfaces/menu-item";
 import { User } from "~/lib/interfaces/user";
 import { FaHome, FaUsers } from "react-icons/fa";
@@ -42,9 +43,16 @@ const AddIconToMenuItem = (item: MenuItem) => {
 };
 
 export default function MainNavbar() {
-  let { menu } = useRouteLoaderData<{ user: User; menu: MenuItem[] }>(
-    "routes/_auth"
-  );
+  // let { menu } = useRouteLoaderData<{ user: User; menu: MenuItem[] }>(
+  //   "routes/_auth"
+  // );
+
+  const matches = useMatches();
+
+  
+  let menu = (
+    matches.find((match: any) => match.data?.menu)?.data as any
+  )?.menu;
 
   menu = (menu.filter((menu: MenuItem) => menu.type === "TOP_MENU") || []).map(
     (item: MenuItem) => {

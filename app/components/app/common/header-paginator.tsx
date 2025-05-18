@@ -8,6 +8,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../../ui/pagination";
+import { cn } from "~/lib/utils";
 
 interface PaginationProps {
   total: number;
@@ -56,7 +57,10 @@ export function PaginationComponent({
           <PaginationItem key={i}>
             <PaginationLink
               href={`?page=${i}&limit=${limit}`}
-              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              className={cn(
+                "hover:bg-blue-300",
+                i == page ? "bg-primary text-primary-foreground" : ""
+              )}
               isActive={i == page}
             >
               {i}
@@ -73,7 +77,10 @@ export function PaginationComponent({
           <PaginationItem key={i}>
             <PaginationLink
               href={`?page=${i}&limit=${limit}`}
-              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              className={cn(
+                "hover:bg-blue-300",
+                i == page ? "bg-primary text-primary-foreground" : ""
+              )}
               isActive={i == page}
             >
               {i}
@@ -93,9 +100,10 @@ export function PaginationComponent({
         <PaginationItem key={totalPages}>
           <PaginationLink
             href={`?page=${totalPages}&limit=${limit}`}
-            className={
+            className={cn(
+              "hover:bg-blue-300",
               totalPages == page ? "bg-primary text-primary-foreground" : ""
-            }
+            )}
             isActive={totalPages == page}
           >
             {totalPages}
@@ -112,7 +120,10 @@ export function PaginationComponent({
         <PaginationItem key={1}>
           <PaginationLink
             href={`?page=${1}&limit=${limit}`}
-            className={1 == page ? "bg-primary text-primary-foreground" : ""}
+            className={cn(
+              "hover:bg-blue-300",
+              1 == page ? "bg-primary text-primary-foreground" : ""
+            )}
             isActive={1 == page}
           >
             {1}
@@ -133,7 +144,10 @@ export function PaginationComponent({
           <PaginationItem key={i}>
             <PaginationLink
               href={`?page=${i}&limit=${limit}`}
-              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              className={cn(
+                "hover:bg-blue-300",
+                i == page ? "bg-primary text-primary-foreground" : ""
+              )}
               isActive={i == page}
             >
               {i}
@@ -154,9 +168,10 @@ export function PaginationComponent({
         <PaginationItem key={totalPages}>
           <PaginationLink
             href={`?page=${totalPages}&limit=${limit}`}
-            className={
+            className={cn(
+              "hover:bg-blue-300",
               totalPages == page ? "bg-primary text-primary-foreground" : ""
-            }
+            )}
             isActive={totalPages == page}
           >
             {totalPages}
@@ -173,7 +188,10 @@ export function PaginationComponent({
         <PaginationItem key={1}>
           <PaginationLink
             href={`?page=${1}&limit=${limit}`}
-            className={1 == page ? "bg-primary text-primary-foreground" : ""}
+            className={cn(
+              "hover:bg-blue-300",
+              1 == page ? "bg-primary text-primary-foreground" : ""
+            )}
             isActive={1 == page}
           >
             {1}
@@ -193,7 +211,10 @@ export function PaginationComponent({
           <PaginationItem key={i}>
             <PaginationLink
               href={`?page=${i}&limit=${limit}`}
-              className={i == page ? "bg-primary text-primary-foreground" : ""}
+              className={cn(
+                i == page ? "bg-primary text-primary-foreground" : "",
+                "hover:bg-blue-300"
+              )}
               isActive={i == page}
             >
               {i}

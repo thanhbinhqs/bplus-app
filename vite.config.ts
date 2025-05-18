@@ -20,6 +20,7 @@ export default defineConfig({
       
       },
       basename: "/app",
+      
     }),
     tsconfigPaths(),
   ],

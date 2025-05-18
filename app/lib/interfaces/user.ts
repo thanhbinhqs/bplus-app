@@ -11,4 +11,5 @@ export interface User {
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
+  deleted?: boolean;
 }

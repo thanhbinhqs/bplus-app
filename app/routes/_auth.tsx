@@ -6,22 +6,49 @@ import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { apiRequest } from "~/lib/api-request";
 import { MenuItem } from "~/lib/interfaces/menu-item";
-import { useLoaderData } from "@remix-run/react";
+import { data, useLoaderData } from "@remix-run/react";
 import { ReactNode, useEffect } from "react";
 import React from "react";
 import Loading from "~/components/app/loading";
+import { useIsMobile } from "~/hooks/use-mobile";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const pathname = new URL(request.url).pathname.split("/");
   //remove fist part of pathname by /
   const returnUrl = "/" + pathname.slice(2, pathname.length).join("/");
-  const userRes = await apiRequest(request, "/user/me");
-  const menuRes = await apiRequest(request, "/menu");
-  if (!userRes?.success || !menuRes?.success) {
-    return redirect("/auth/login?returnUrl=" + returnUrl);
-  }
-  const menu: MenuItem[] = menuRes.data || [];
+  const cookies = request.headers.get("cookie");
 
+  const userStr = cookies
+    ?.split(";")
+    .find((cookie) => cookie.trim().startsWith("bp_user="))
+    ?.split("=")[1];
+
+  let user = userStr ? JSON.parse(userStr) : null;
+
+  if (!user) {
+    const userRes = await apiRequest(request, "/user/me");
+
+    if (!userRes?.success) {
+      return redirect("/auth/login?returnUrl=" + returnUrl);
+    }
+
+    user = userRes.data;
+  }
+
+  const menuStr = cookies
+    ?.split(";")
+    .find((cookie) => cookie.trim().startsWith("bp_menu="))
+    ?.split("=")[1];
+
+  let menu: MenuItem[] = menuStr ? JSON.parse(menuStr) : [];
+
+  if (!menu.length) {
+    const menuRes = await apiRequest(request, "/menu");
+    if (!menuRes?.success) {
+      return redirect("/auth/login?returnUrl=" + returnUrl);
+    }
+    menu = menuRes.data || [];
+  }
   const checkMenu = menu.flatMap((item) => {
     return [item, ...(item.children || [])];
   });
@@ -50,11 +77,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-  return {
-    user: userRes.data,
-    menu: menuRes.data,
-    pageName: capitalizedPageName,
-  };
+  return data(
+    {
+      user: user,
+      menu: menu,
+      pageName: capitalizedPageName,
+    },
+    {
+      headers: {
+        "Set-Cookie": [
+          `bp_menu=${JSON.stringify(menu)};path=/;`,
+          `bp_user=${JSON.stringify(user)};path=/;httpOnly;`,
+          `returnUrl=${returnUrl};path=/;max-age=0;`,
+          `code=200;path=/;max-age=0;`,
+        ].join(", "),
+      },
+    }
+  );
 }
 
 export default function AuthLayout() {
@@ -69,26 +108,40 @@ export default function AuthLayout() {
     onTriggerClickHandler();
   }, []);
 
+  const isMobile = useIsMobile();
+
   const onTriggerClickHandler = () => {
     const container = document.querySelector("#auth-container");
-    if (isOpen) {
-      container?.classList.add("w-[calc(100vw-192px)]");
+    if (isMobile) {
       container?.classList.remove("w-[calc(100vw-48px)]");
-    } else {
-      container?.classList.add("w-[calc(100vw-48px)]");
       container?.classList.remove("w-[calc(100vw-192px)]");
+      container?.classList.add("w-screen");
+
+      setIsOpen(false);
+    } else {
+      container?.classList.remove("w-screen");
+      if (isOpen) {
+        container?.classList.add("w-[calc(100vw-192px)]");
+        container?.classList.remove("w-[calc(100vw-48px)]");
+      } else {
+        container?.classList.add("w-[calc(100vw-48px)]");
+        container?.classList.remove("w-[calc(100vw-192px)]");
+      }
+
+      setIsOpen(!isOpen);
     }
-    setIsOpen(!isOpen);
   };
 
   return (
     <>
       {navigation.state === "loading" && <Loading />}
       <SidebarProvider
-        style={{
-          "--sidebar-width": "12rem",
-          "--sidebar-width-mobile": "20rem",
-        }}
+        style={
+          {
+            "--sidebar-width": "12rem",
+            "--sidebar-width-mobile": "20rem",
+          } as React.CSSProperties
+        }
         className="app-sidebar"
       >
         <AppSidebar variant="offcanvas" id="app-sidebar" />

@@ -5,4 +5,5 @@ export interface MenuItem {
   title: string;
   icon: string;
   children?: MenuItem[];
+  subject: string;
 }

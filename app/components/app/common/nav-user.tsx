@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   BadgeCheck,
   Bell,
@@ -22,19 +23,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
-import { Link, useRouteLoaderData } from "@remix-run/react";
+import { Link, useMatches, useRouteLoaderData } from "@remix-run/react";
 import { User } from "~/lib/interfaces/user";
 import { MenuItem } from "~/lib/interfaces/menu-item";
 import { IoPersonCircleOutline, IoSettingsOutline } from "react-icons/io5";
 import { RiLockPasswordLine } from "react-icons/ri";
 
 export default function NavUser() {
-  const data = useRouteLoaderData<{ user: User; menu: MenuItem[] }>(
-    "routes/_auth"
-  );
+  // const data = useRouteLoaderData<{ user: User; menu: MenuItem[] }>(
+  //   "routes/_auth"
+  // );
+  const matches = useMatches();
+  const user = (
+    matches.find((match: any) => match.data?.user)?.data as any
+  )?.user;
+
   const { isMobile } = useSidebar();
 
-  const user = data?.user as User;
+  // const user = data?.user as User;
   if (!user) return null;
   return (
     <SidebarMenu>

@@ -1,4 +1,5 @@
 import {
+  data,
   Form,
   redirect,
   useLoaderData,
@@ -8,15 +9,6 @@ import {
 import { ChangeEvent, useState } from "react";
 
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { HeaderContentProps } from "~/lib/interfaces/header-content";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
@@ -27,30 +19,25 @@ import { User } from "~/lib/interfaces/user";
 import AppDialog from "~/components/app/dialog";
 import moment from "moment";
 import { convertBase64 } from "~/lib/utils";
+import { AppPaginator } from "~/lib/interfaces/paginator";
+
+import { z } from "zod";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const cookies = request.headers.get("cookie");
-
-  const page =
+  const pagination = JSON.parse(
     cookies
       ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("page="))
-      ?.split("=")[1] || "1";
+      .find((cookie) => cookie.trim().startsWith("bp_pagination="))
+      ?.split("=")[1] || "{}"
+  );
+  const page = pagination.page || 1;
+  const limit = pagination.limit || 50;
+  const search = pagination.search || "";
 
-  const limit =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("limit="))
-      ?.split("=")[1] || "50";
-
-  const search =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("search="))
-      ?.split("=")[1] || "";
-
-  let id = url.searchParams.get("id");
+  const id = url.searchParams.get("id");
+  // let id = params.id;
   if (!id)
     return redirect(
       `/dashboard/users?page=${page}&limit=${limit}&search=${search}`
@@ -60,7 +47,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     method: "GET",
   });
 
-  if (json.success) return json.data;
+  if (json.success)
+    return data({
+      user: json.data,
+      pagination,
+    });
   else
     return redirect(
       `/dashboard/users?page=${page}&limit=${limit}&search=${search}`
@@ -69,47 +60,46 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const cookies = request.headers.get("cookie");
-  const page =
+  const paginationStr = JSON.parse(
     cookies
       ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("page="))
-      ?.split("=")[1] || "1";
-
-  const limit =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("limit="))
-      ?.split("=")[1] || "50";
-
-  const search =
-    cookies
-      ?.split(";")
-      .find((cookie) => cookie.trim().startsWith("search="))
-      ?.split("=")[1] || "";
+      .find((cookie) => cookie.trim().startsWith("bp_pagination="))
+      ?.split("=")[1] || "{}"
+  );
+  const pagination = paginationStr ? JSON.parse(paginationStr) : {};
+  const page = pagination.page || 1;
+  const limit = pagination.limit || 50;
+  const search = pagination.search || "";
 
   return redirect(
     `/dashboard/users?page=${page}&limit=${limit}&search=${search}`
   );
 }
 
-// export const handle = {
-//   headerContent: {
-//     content: <h1>Nội dung tùy chỉnh cho SiteHeader</h1>,
-//     pageName: "Profile",
-//   } as HeaderContentProps,
-// };
+const formSchema = z.object({
+  username: z.string().min(1),
+  fullname: z.string().min(1).optional(),
+  email: z.string().min(1).optional(),
+  phone: z.string().min(1).optional(),
+  address: z.string().min(1).optional(),
+  gen: z.string().min(1).optional(),
+  birthday: z.string().min(1).optional(),
+  avatar: z.string().optional(),
+});
 
 export default function UserProfileDialog() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
   const submit = useSubmit();
-  const user: User = useLoaderData<typeof loader>();
-
+  const { user, pagination }: { user: User; pagination: AppPaginator } =
+    useLoaderData<typeof loader>();
   const [avatar, setAvatar] = useState<string>(user.avatar || "");
 
   const closeHandler = () => {
+    navigate(
+      `/dashboard/users?page=${pagination.page}&limit=${pagination.limit}&search=${pagination.search}`
+    );
     setOpen(false);
-    navigate("/dashboard/users");
   };
 
   const submitHandler = () => {
