@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   data,
   Form,
   redirect,
+  useActionData,
   useLoaderData,
   useNavigate,
   useSubmit,
 } from "@remix-run/react";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { Button } from "~/components/ui/button";
@@ -22,6 +24,9 @@ import { convertBase64 } from "~/lib/utils";
 import { AppPaginator } from "~/lib/interfaces/paginator";
 
 import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -60,20 +65,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const cookies = request.headers.get("cookie");
-  const paginationStr = JSON.parse(
+  const pagination = JSON.parse(
     cookies
       ?.split(";")
       .find((cookie) => cookie.trim().startsWith("bp_pagination="))
       ?.split("=")[1] || "{}"
   );
-  const pagination = paginationStr ? JSON.parse(paginationStr) : {};
   const page = pagination.page || 1;
   const limit = pagination.limit || 50;
   const search = pagination.search || "";
 
-  return redirect(
-    `/dashboard/users?page=${page}&limit=${limit}&search=${search}`
-  );
+  const json = await request.json();
+
+  const respone = await apiRequest(request, `/user/profile`, {
+    method: "PATCH",
+    body: JSON.stringify(json.user),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (respone.success)
+    return redirect(
+      `/dashboard/users?page=${page}&limit=${limit}&search=${search}`
+    );
+  else return data(respone);
 }
 
 const formSchema = z.object({
@@ -88,11 +104,18 @@ const formSchema = z.object({
 });
 
 export default function UserProfileDialog() {
+  const { user, pagination }: { user: User; pagination: AppPaginator } =
+    useLoaderData<typeof loader>();
+
+  const actionData = useActionData<typeof action>();
+
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
   const submit = useSubmit();
-  const { user, pagination }: { user: User; pagination: AppPaginator } =
-    useLoaderData<typeof loader>();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
   const [avatar, setAvatar] = useState<string>(user.avatar || "");
 
   const closeHandler = () => {
@@ -102,8 +125,13 @@ export default function UserProfileDialog() {
     setOpen(false);
   };
 
-  const submitHandler = () => {
-    submit({}, { method: "POST", encType: "application/json" });
+  const submitHandler = (e: any) => {
+    e.preventDefault();
+    user.avatar = avatar ? avatar : user.avatar;
+    submit({ user } as any, {
+      method: "POST",
+      encType: "application/json",
+    });
   };
 
   const avatarOnchange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +144,12 @@ export default function UserProfileDialog() {
     setAvatar(avat);
   };
 
+  useEffect(() => {
+    if (actionData && !actionData.success) {
+      toast.error(actionData.message, { duration: 3000 });
+    }
+  }, []);
+
   return (
     <AppDialog
       open={open}
@@ -123,56 +157,64 @@ export default function UserProfileDialog() {
       description="Update user profile"
       close={closeHandler}
     >
-      <Form className="flex justify-center items-center w-full flex-col gap-3 overflow-y-auto">
-        <div className="w-full">
-          <Label htmlFor="username">Username</Label>
-          <Input
-            type="text"
-            name="username"
-            defaultValue={user.username}
-            disabled
-          />
+      <Form
+        {...form}
+        className="flex flex-col justify-center items-center gap-3 max-h-[80vh]"
+      >
+        <div className="flex justify-center items-center w-full flex-col gap-3 overflow-y-auto">
+          <div className="w-full">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              type="text"
+              name="username"
+              // defaultValue={user.username}
+              value={user.username}
+              disabled
+            />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="fullname">Fullname</Label>
+            <Input type="text" name="fullname" value={user.fullname} />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="email">Email</Label>
+            <Input type="email" name="email" value={user.email} />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="phone">Phone</Label>
+            <Input type="tel" name="phone" value={user.phone} />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="address">Address</Label>
+            <Input type="text" name="address" value={user.address} />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="gen">Gen</Label>
+            <Input type="number" name="gen" value={user.gen} />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="birthday">Birthday</Label>
+            <Input
+              type="date"
+              name="birthday"
+              className=""
+              value={
+                user.birthday
+                  ? moment(user.birthday).format("DD/MM/YYYY")
+                  : undefined
+              }
+            />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="avatar">Avatar</Label>
+            <Input type="file" name="avatar" onChange={avatarOnchange} />
+            <div className="flex flex-col justify-center items-center mt-2">
+              {avatar && (
+                <img src={avatar} alt="" className="w-20 h-20 rounded-full " />
+              )}
+            </div>
+          </div>
         </div>
-        <div className="w-full">
-          <Label htmlFor="fullname">Fullname</Label>
-          <Input type="text" name="fullname" defaultValue={user.fullname} />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="email">Email</Label>
-          <Input type="email" name="email" defaultValue={user.email} />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="phone">Phone</Label>
-          <Input type="tel" name="phone" defaultValue={user.phone} />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="address">Address</Label>
-          <Input type="text" name="address" defaultValue={user.address} />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="gen">Gen</Label>
-          <Input type="number" name="gen" defaultValue={user.gen} />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="birthday">Birthday</Label>
-          <Input
-            type="date"
-            name="birthday"
-            defaultValue={
-              user.birthday
-                ? moment(user.birthday).format("DD/MM/YYYY")
-                : undefined
-            }
-          />
-        </div>
-        <div className="w-full">
-          <Label htmlFor="avatar">Avatar</Label>
-          <Input type="file" name="avatar" onChange={avatarOnchange} />
-          {avatar && (
-            <img src={avatar} alt="" className="w-20 h-20 rounded-full" />
-          )}
-        </div>
-
         <Button type="submit" onClick={submitHandler}>
           Save
         </Button>
